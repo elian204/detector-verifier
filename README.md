@@ -1,97 +1,71 @@
 # Detector as verifier
 
-A learning project on what happens when a small language model is trained,
-with group-relative policy gradients, to look less like AI to a frozen
-text detector.
+Train a small language model so that a frozen AI-text detector scores its
+writing as human, and measure what that training actually changes.
 
-The goal is to understand the training loop and to keep a public record of
-each step. It is not to build an undetectable writer.
-
-Upstream trainer and dataset construction:
+The policy is `Qwen/Qwen3-0.6B-Base`. The reward is a frozen
+`qwen3-variable` detector trained in
 [rasbt/ai-detector-from-scratch](https://github.com/rasbt/ai-detector-from-scratch).
-
-The finished short-target pilot lives on the fork, branch
-`feat/robustness-evaluation`:
-[results write-up](https://github.com/elian204/ai-detector-from-scratch/blob/feat/robustness-evaluation/results/grpo-human-baseline/README.md).
-That history stays there. This repository starts the next project.
-
-## What the trainer does
-
-Raschka's script is left unchanged. For one prompt it samples a few answers
-and pays each one
+The trainer is that repository's stage-18 script, used as published:
+group-relative REINFORCE, no policy-ratio clip, no KL penalty. For each
+prompt the model samples several answers. An answer is paid
 
 ```text
-reward = (1 - P_AI) * length_score
+reward = (1 - P_AI) × length_score
 ```
 
-`P_AI` is the frozen detector's probability that the answer is AI-written.
-`length_score` is 1 when the word count matches the request, and lower when
-the answer is too short or too long. The update compares answers to the same
-prompt only. There is no value network, no policy-ratio clip, and no KL
-penalty back to the base model. The loss is group-relative REINFORCE on the
-sum of completion-token log probabilities.
+`P_AI` is the detector's probability that the answer is AI-written.
+`length_score` is 1 at the requested word count and falls off when the
+answer is shorter or longer. The update only ranks answers to the same
+prompt.
 
-## What pilot 1 already showed
+A high training reward is not the result. The result is whether the text
+stays readable and whether a detector that was not the reward agrees.
 
-Prompts asked for 50 or 100 words. Four answers were sampled per step, for
-500 steps. The reward model was `qwen3-variable`.
+## Result so far
 
-By about step 50 the training detector's human score sits near 0.9996 and
-stops moving. Inside a group, the answers tie on that score, so the update
-is driven by length. The highest-reward text can be one sentence repeated
-to the token cap. Float32 runs collapse to identical strings in 4 of 4
-seeds. Bfloat16 runs do not, within 500 steps. One bfloat16 seed ends in
-coherent prose that the training detector likes and a held-out detector
-does not.
+Short answers, 50 and 100 words, four samples per step, 500 steps.
+Recorded on the fork, branch `feat/robustness-evaluation`:
+[pilot write-up](https://github.com/elian204/ai-detector-from-scratch/blob/feat/robustness-evaluation/results/grpo-human-baseline/README.md).
 
-Repetition and gibberish move fluency metrics in opposite directions, so a
-single automatic score is not enough. Samples have to be read.
+The training detector saturates. By about step 50 its human score is
+about 0.9996 and stays there for ordinary prose, repeated sentences, and
+digit salad. Answers in a group tie on that score, so later updates follow
+the length term. Float32 collapses to identical strings in 4 of 4 seeds.
+Bfloat16 does not within 500 steps. In one bfloat16 run the final prose is
+coherent, the training detector scores it near 0.9 human, and a held-out
+detector scores it near 0.3.
 
-## What we will do
+Repetition and gibberish move automatic fluency scores in opposite
+directions. Both the held-out detector and the text itself have to be
+checked.
 
-Each step ends in a commit and a push. Model weights stay on disk.
+## In progress
 
-1. **This commit.** The plan, and nothing else.
-2. **Read pilot 1 in the text.** Annotate one high-reward repeated answer
-   and one late collapsed or gibberish answer from the existing logs.
-   No new training.
-3. **250-word pilot.** Same trainer, same reward, float32, learning rate
-   `1e-5`, **four** rollouts (the same group size as pilot 1). About 100
-   steps, with checkpoints at 0, 20, 50, and 100 on a fixed set of
-   validation prompts. Leave the trainer's token cap alone: a 250-word
-   target is already limited to about 416 new tokens. Score the same
-   outputs with DistilBERT, which was not the reward. The question is
-   whether detector saturation and length-only updates still happen when
-   the answer is long enough for the detector to see more text.
-4. **Read that run before changing the algorithm.** Compare it with pilot 1
-   at the same step counts. A small blind read of before/after samples
-   judges coherence and whether the answer is on topic. Detector scores
-   do not decide that.
-5. **One change, and only if step 3 shows the same hack.** Add a KL penalty
-   toward the frozen base model. If the 250-word run does not move, inspect
-   advantages and token-cap hits before adding anything. If the held-out
-   detector and the blind read both improve, stop and write that up.
+A 250-word run, to see whether saturation and length-only updates persist
+when the detector sees more text. Same trainer, same reward, float32,
+learning rate `1e-5`, four samples per step, so the only change from the
+short run is length. The trainer's own cap applies: about 416 new tokens
+for a 250-word target. Checkpoints are compared with the short run at
+steps 0, 20, 50, and 100. The same outputs are scored with DistilBERT,
+which is not the reward.
 
-KL tests whether staying near the base model preserves readable text under
-this reward. It does not make a saturated detector able to tell prose from
-garbage.
+If that run repeats the short-run failure, the next training change is a
+KL penalty toward the frozen base model. If it does not move, the
+advantages and token-cap rate come first. If the held-out score and the
+text both improve, that is the stopping point.
 
-## Not next
+Before any of those calls, a blind read of before/after samples checks
+coherence and whether the answer addresses the prompt.
 
-These are real questions. They wait until step 5 has a result.
+## Backlog
 
-- Why bfloat16 collapsed less than float32 (frozen weights versus a smaller
-  effective step).
-- Turning off `--skip-zero-advantage-updates`.
-- A ratio clip. On a single update of fresh samples the ratio starts at 1,
-  so clipping does nothing until samples are reused.
-- Eight rollouts, a supervised warmup, or a logistic-regression reward.
-- Stacking more than one of these in the same run.
+- Why bfloat16 collapsed less than float32: frozen weights, or a smaller
+  effective step.
+- Training with `--skip-zero-advantage-updates` turned off.
+- A clipped policy ratio. It does nothing on one update of fresh samples,
+  because the ratio starts at 1.
+- Eight samples per prompt, a supervised warmup, or a logistic-regression
+  reward.
 
-## How a run is judged
-
-Report the training-detector score, the held-out score, the length term,
-and a short read of the text. A rising training score by itself is not
-success. Longer answers that only improve the length term are not reward
-hacking. Hacking is a training score that stays high while the text gets
-worse, or while a detector that was not the reward disagrees.
+Weights are not stored in this repository.

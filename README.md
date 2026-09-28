@@ -40,23 +40,20 @@ Repetition and gibberish move automatic fluency scores in opposite
 directions. Both the held-out detector and the text itself have to be
 checked.
 
-## In progress
+## 250-word run
 
-A 250-word run, to see whether saturation and length-only updates persist
-when the detector sees more text. Same trainer, same reward, float32,
-learning rate `1e-5`, four samples per step, so the only change from the
-short run is length. The trainer's own cap applies: about 416 new tokens
-for a 250-word target. Checkpoints are compared with the short run at
-steps 0, 20, 50, and 100. The same outputs are scored with DistilBERT,
-which is not the reward.
+Finished. Same trainer, same reward, float32, learning rate `1e-5`, four
+samples per step, 100 steps. The only change from the short run was length.
+Recorded on the fork:
+[250-word run](https://github.com/elian204/ai-detector-from-scratch/blob/feat/robustness-evaluation/results/grpo-250w-fp32/README.md).
 
-If that run repeats the short-run failure, the next training change is a
-KL penalty toward the frozen base model. If it does not move, the
-advantages and token-cap rate come first. If the held-out score and the
-text both improve, that is the stopping point.
+It collapsed to a repeated loop. Training P(human) is 0.9998 by step 20.
+By step 100 the four answers are one "of the U.S." loop, the length score
+is 1, and the update is skipped. DistilBERT, held out, scores that loop
+about 0.996 human, so both qwen3-variable and DistilBERT score it as human.
+381 of 400 answers hit the 416-token cap.
 
-Before any of those calls, a blind read of before/after samples checks
-coherence and whether the answer addresses the prompt.
+KL is not the next run. Weights stay off GitHub.
 
 ## Backlog
 

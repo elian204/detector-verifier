@@ -60,6 +60,14 @@ human. Answers stop on EOS at different lengths. The identical 250-word
 Recorded on the fork:
 [1616-token cap](https://github.com/elian204/ai-detector-from-scratch/blob/feat/robustness-evaluation/results/grpo-250w-cap1616/README.md).
 
+Continuing that run to step 100, the answers are a short word list with a
+spaceless tail, cut at 1616 tokens, and both detectors score it human.
+A trigram factor stops the noun-phrase loop and lands on a ~230-word
+template essay that both detectors still score human.
+Recorded on the fork:
+[continuation](https://github.com/elian204/ai-detector-from-scratch/blob/feat/robustness-evaluation/results/grpo-250w-cap1616/continuation/README.md),
+[trigram run](https://github.com/elian204/ai-detector-from-scratch/blob/feat/robustness-evaluation/results/grpo-250w-trigram/README.md).
+
 KL is not the next run. Weights stay off GitHub.
 
 ## Backlog

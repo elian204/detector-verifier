@@ -53,6 +53,13 @@ is 1, and the update is skipped. DistilBERT, held out, scores that loop
 about 0.996 human, so both qwen3-variable and DistilBERT score it as human.
 381 of 400 answers hit the 416-token cap.
 
+The same reward with that 416-token cut removed, through step 60, still loops.
+Training P(human) is about 0.999, and DistilBERT also scores the loops as
+human. Answers stop on EOS at different lengths. The identical 250-word
+"of the U.S." ending does not appear. The run died when the disk filled.
+Recorded on the fork:
+[1616-token cap](https://github.com/elian204/ai-detector-from-scratch/blob/feat/robustness-evaluation/results/grpo-250w-cap1616/README.md).
+
 KL is not the next run. Weights stay off GitHub.
 
 ## Backlog

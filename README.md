@@ -68,7 +68,15 @@ Recorded on the fork:
 [continuation](https://github.com/elian204/ai-detector-from-scratch/blob/feat/robustness-evaluation/results/grpo-250w-cap1616/continuation/README.md),
 [trigram run](https://github.com/elian204/ai-detector-from-scratch/blob/feat/robustness-evaluation/results/grpo-250w-trigram/README.md).
 
-KL is not the next run. Weights stay off GitHub.
+A KL penalty toward the frozen base, β = 0.05, with the trigram factor off,
+does not keep either of those. At step 60 the winner is 496 copies of
+`<content>`, cut at 1616 tokens, and its KL is about 0.03 so the penalty
+barely applies. The other three answers are short HTML stubs with KL about
+1–2. Both detectors still score them human.
+Recorded on the fork:
+[KL run](https://github.com/elian204/ai-detector-from-scratch/blob/main/results/grpo-250w-kl/README.md).
+
+Weights stay off GitHub.
 
 ## Backlog
 

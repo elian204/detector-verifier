@@ -76,6 +76,14 @@ barely applies. The other three answers are short HTML stubs with KL about
 Recorded on the fork:
 [KL run](https://github.com/elian204/ai-detector-from-scratch/blob/main/results/grpo-250w-kl/README.md).
 
+Raising that penalty to β = 0.5, still with the trigram factor off, replaces
+the `<content>` tag. At step 60 all four answers are spaced loops of a return
+instruction, cut at 1616 tokens, with KL between 0.06 and 0.14. The winner is
+"Return again" 190 times (385 words). Both detectors still score these loops
+human.
+Recorded on the fork:
+[KL β = 0.5](https://github.com/elian204/ai-detector-from-scratch/blob/main/results/grpo-250w-kl-beta0.5/README.md).
+
 Weights stay off GitHub.
 
 ## Backlog
